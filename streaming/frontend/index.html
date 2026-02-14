@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://vjs.zencdn.net/8.16.1/video-js.css" rel="stylesheet" />
+  <script src="https://vjs.zencdn.net/8.16.1/video.min.js"></script>
+  <title>Private Live</title>
+  <style>
+    body { font-family: sans-serif; max-width: 900px; margin: 24px auto; padding: 0 12px; }
+    input { padding: 10px; width: 100%; margin: 6px 0; }
+    button { padding: 10px 14px; margin-top: 8px; }
+    #playerWrap { display:none; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <h2>Company Live</h2>
+
+  <div id="loginWrap">
+    <input id="mobile" placeholder="Mobile number" />
+    <input id="password" type="password" placeholder="Password" />
+    <button onclick="doLogin()">Login</button>
+    <div id="msg"></div>
+  </div>
+
+  <div id="playerWrap">
+    <video
+      id="player"
+      class="video-js vjs-default-skin"
+      controls
+      autoplay
+      playsinline
+      width="900"
+      height="506"></video>
+  </div>
+
+  <script>
+    let token = null;
+    let player = null;
+
+    async function doLogin() {
+      document.getElementById("msg").innerText = "";
+      const mobile = document.getElementById("mobile").value.trim();
+      const password = document.getElementById("password").value;
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ mobile, password })
+      });
+
+      if (!res.ok) {
+        document.getElementById("msg").innerText = "Login failed";
+        return;
+      }
+
+      const data = await res.json();
+      token = data.access_token;
+
+      document.getElementById("loginWrap").style.display = "none";
+      document.getElementById("playerWrap").style.display = "block";
+      await loadStream();
+    }
+
+    async function loadStream() {
+      const res = await fetch("/api/stream/url", {
+        headers: { "Authorization": "Bearer " + token }
+      });
+
+      if (!res.ok) {
+        document.getElementById("msg").innerText = "Cannot get stream url";
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!player) {
+        player = videojs("player", {
+          liveui: true,
+          html5: { vhs: { withCredentials: false } }
+        });
+      }
+
+      player.src({ src: data.url, type: "application/x-mpegURL" });
+      player.play();
+    }
+  </script>
+</body>
+</html>
