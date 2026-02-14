@@ -27,6 +27,7 @@ services:
       - "8080:8080"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/var/www/html:ro
       - hlsdata:/var/www/hls
     depends_on:
       - backend
